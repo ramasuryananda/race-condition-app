@@ -12,7 +12,8 @@ class AccountService
         $this->repo = $accRepo;
     }
     
-    function createAccount(array $requestData){
-        return $this->repo->store($requestData["name"]);
+    function createAccount(String $name, int $balance = 0): Account
+    {
+        return $this->repo->store($name,$balance);
     }
 }

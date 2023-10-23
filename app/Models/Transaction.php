@@ -11,9 +11,9 @@ class Transaction extends Model
 
     protected $conection = "pgsql";
 
-    protected $filable = [
-        "account_id",
+    protected $fillable = [
+        "source_account_id",
+        "destination_account_id",
         "nominal",
-        "mutation"
     ];
 }

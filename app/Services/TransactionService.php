@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Repository;
+namespace App\Services;
 
 use App\Exceptions\InvalidBalanceException;
 use Brick\Math\BigInteger;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\DB;
 use App\Repository\AccountRepository;
 use App\Repository\TransactionRepository;
+use Illuminate\Support\Facades\DB;
 
 class TransactionService
 {
@@ -18,24 +18,28 @@ class TransactionService
         $this->transactionRepo = $transactionRepo;
     }
 
-    function store(BigInteger $accountId, int $nominal, bool $mutation):Transaction
+    function store(int $source,int $destination, int $nominal):Transaction
     {
         try {
             DB::beginTransaction();
+            DB::statement("SET innodb_lock_wait_timeout = 1");//set timeout
+            $transactionAccount = $this->accRepo->getForUpdateMultipleAccount([$source,$destination]);
+            $sourceAcc = $transactionAccount[$source];
+            $destinationAcc = $transactionAccount[$destination];
 
-            $account = $this->accRepo->getForUpdate($accountId);
-            $endBalance = $mutation ? $account->balance + $nominal : $account->balance - $nominal;
-            if($endBalance<0){
+            $sourceEndBalance = $sourceAcc->balance - $nominal;
+            $destinationEndBalance = $destinationAcc->balance + $nominal;
+            if($sourceEndBalance<0){
                 throw InvalidBalanceException::class;
             }
+            sleep(10);
 
-            $transaction = $this->transactionRepo->store($account->id,$nominal,$mutation);
+            $transaction = $this->transactionRepo->store(source:$source,destination:$destination,nominal:$nominal);
 
-            $this->accRepo->updateBalance($account,$endBalance);
-
-            return $transaction;
-
+            $this->accRepo->updateBalance($source,$sourceEndBalance);
+            $this->accRepo->updateBalance($destination,$destinationEndBalance);
             DB::commit();
+            return $transaction;
         } catch (\Throwable $th) {
             DB::rollBack();
             throw $th;

@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -23,8 +24,20 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
-        $this->reportable(function (Throwable $e) {
-            //
+        $this->reportable(function (InvalidBalanceException $e) {
+            return response()->json([
+                "message"=>"request failed",
+                "error" => $e->getMessage()
+            ],$e->getCode());
+        })->stop();
+
+        $this->reportable(function (Throwable $e){
+            $errorMessage = $e->getMessage();
+            Log::error("request:failed : $errorMessage");
+            return response()->json([
+                "message" => "request failed",
+                "error" => "some error occurs"
+            ]);
         });
     }
 }

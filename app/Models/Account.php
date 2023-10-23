@@ -11,7 +11,7 @@ class Account extends Model
 
     protected $conection = "pgsql";
 
-    protected $filable = [
+    protected $fillable = [
         "name",
         "balance",
     ];

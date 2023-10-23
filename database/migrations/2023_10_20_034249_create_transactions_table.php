@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->bigIncrements("id");
-            $table->unsignedBigInteger("account_id");
+            $table->unsignedBigInteger("source_account_id");
+            $table->unsignedBigInteger("destination_account_id");
             $table->decimal("nominal",20,2);
-            $table->boolean("mutation")->default(true);
             $table->timestamps();
 
-            $table->foreign("account_id")->on("accounts")->references("id");
+            $table->foreign("source_account_id")->on("accounts")->references("id");
+            $table->foreign("destination_account_id")->on("accounts")->references("id");
         });
     }
 

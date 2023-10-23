@@ -8,12 +8,12 @@ use Brick\Math\BigInteger;
 
 class TransactionRepository
 {
-    function store(BigInteger $accountId, int $nominal, bool $mutation): Transaction
+    function store(int $source,int $destination, int $nominal,): Transaction
     {
         return Transaction::create([
-            "account_id" => $accountId,
+            "source_account_id" => $source,
             "nominal" => $nominal,
-            "mutation" => $mutation
+            "destination_account_id" => $destination
         ]);
     }
 }

@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Exceptions\InvalidBalanceException;
+use App\Jobs\TransferBalanceJob;
 use Brick\Math\BigInteger;
 use App\Models\Transaction;
+use App\Models\TransactionLog;
 use App\Repository\AccountRepository;
 use App\Repository\TransactionRepository;
 use Illuminate\Support\Facades\Cache;
@@ -76,6 +78,23 @@ class TransactionService
             return $transaction;
         } catch (\Throwable $th) {
             DB::rollBack();
+            throw $th;
+        }
+    }
+
+    function storeQueueSolution(int $source,int $destination, int $nominal): int
+    {
+        try {
+            $sourceAcc = $this->accRepo->get($source);
+            $destinationAcc = $this->accRepo->get($destination);
+
+            $processLog = TransactionLog::create([
+                "status" => 0
+            ]);
+            TransferBalanceJob::dispatch($sourceAcc,$destinationAcc,$nominal,$processLog->id);
+            sleep(5);
+            return $processLog->id;
+        } catch (\Throwable $th) {
             throw $th;
         }
     }

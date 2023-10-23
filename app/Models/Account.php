@@ -9,7 +9,7 @@ class Account extends Model
 {
     use HasFactory;
 
-    protected $conection = "pgsql";
+    // protected $conection = "pgsql";
 
     protected $fillable = [
         "name",

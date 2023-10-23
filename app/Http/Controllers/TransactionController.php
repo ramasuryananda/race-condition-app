@@ -17,7 +17,7 @@ class TransactionController extends Controller
 
     public function store(StoreRequest $request){
         $transactionRequest = $request->validated();
-        $transaction = $this->service->store(
+        $transaction = $this->service->storeAtomicLocking(
             source:$transactionRequest["source_account_id"],
             destination:$transactionRequest["destination_account_id"],
             nominal:$transactionRequest["nominal"],

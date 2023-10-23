@@ -7,6 +7,7 @@ use Brick\Math\BigInteger;
 use App\Models\Transaction;
 use App\Repository\AccountRepository;
 use App\Repository\TransactionRepository;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class TransactionService
@@ -39,6 +40,39 @@ class TransactionService
             $this->accRepo->updateBalance($source,$sourceEndBalance);
             $this->accRepo->updateBalance($destination,$destinationEndBalance);
             DB::commit();
+            return $transaction;
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            throw $th;
+        }
+    }
+
+    function storeAtomicLocking(int $source,int $destination, int $nominal):Transaction
+    {
+        try {
+            DB::beginTransaction();
+            
+            $sourceAcc = $this->accRepo->get($source);
+            $destinationAcc = $this->accRepo->get($destination);
+
+            $transaction = Cache::lock(config("const.updateAccountBalanceLock"))->block(2,function () use($sourceAcc,$destinationAcc,$nominal){
+
+                $sourceEndBalance = $sourceAcc->balance - $nominal;
+                $destinationEndBalance = $destinationAcc->balance + $nominal;
+                if($sourceEndBalance<0){
+                    throw InvalidBalanceException::class;
+                }
+                $transaction = $this->transactionRepo->store(source:$sourceAcc->id,destination:$destinationAcc->id,nominal:$nominal);
+
+                $this->accRepo->updateBalance($sourceAcc->id,$sourceEndBalance);
+                $this->accRepo->updateBalance($destinationAcc->id,$destinationEndBalance);
+
+                sleep(10);
+
+                DB::commit();
+                return $transaction;
+            });
+
             return $transaction;
         } catch (\Throwable $th) {
             DB::rollBack();

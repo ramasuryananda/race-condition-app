@@ -2,7 +2,9 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -24,14 +26,23 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
-        $this->reportable(function (InvalidBalanceException $e) {
+        $this->renderable(function (InvalidBalanceException $e) {
             return response()->json([
                 "message"=>"request failed",
                 "error" => $e->getMessage()
             ],$e->getCode());
-        })->stop();
+        });
+        
+        $this->renderable(function (LockTimeoutException $e) {
+            $errorMessage = $e->getMessage();
+            Log::error("request:failed : $errorMessage");
+            return response()->json([
+                "message"=>"request failed",
+                "error" => "failed storing transaction"
+            ],Response::HTTP_BAD_REQUEST);
+        });
 
-        $this->reportable(function (Throwable $e){
+        $this->renderable(function (Throwable $e){
             $errorMessage = $e->getMessage();
             Log::error("request:failed : $errorMessage");
             return response()->json([

@@ -25,7 +25,7 @@ class TransactionService
     {
         try {
             DB::beginTransaction();
-            DB::statement("SET innodb_lock_wait_timeout = 1");//set timeout
+            DB::statement("SET innodb_lock_wait_timeout = 10");//set timeout
             $transactionAccount = $this->accRepo->getForUpdateMultipleAccount([$source,$destination]);
             $sourceAcc = $transactionAccount[$source];
             $destinationAcc = $transactionAccount[$destination];
@@ -35,7 +35,7 @@ class TransactionService
             if($sourceEndBalance<0){
                 throw InvalidBalanceException::class;
             }
-            sleep(10);
+            sleep(5);
 
             $transaction = $this->transactionRepo->store(source:$source,destination:$destination,nominal:$nominal);
 
@@ -53,11 +53,10 @@ class TransactionService
     {
         try {
             DB::beginTransaction();
-            
-            $sourceAcc = $this->accRepo->get($source);
-            $destinationAcc = $this->accRepo->get($destination);
 
-            $transaction = Cache::lock(config("const.updateAccountBalanceLock"))->block(2,function () use($sourceAcc,$destinationAcc,$nominal){
+            $transaction = Cache::lock(config("const.updateAccountBalanceLock"))->block(10,function () use($source,$destination,$nominal){
+                $sourceAcc = $this->accRepo->get($source);
+                $destinationAcc = $this->accRepo->get($destination);
 
                 $sourceEndBalance = $sourceAcc->balance - $nominal;
                 $destinationEndBalance = $destinationAcc->balance + $nominal;
@@ -69,7 +68,7 @@ class TransactionService
                 $this->accRepo->updateBalance($sourceAcc->id,$sourceEndBalance);
                 $this->accRepo->updateBalance($destinationAcc->id,$destinationEndBalance);
 
-                sleep(10);
+                sleep(4);
 
                 DB::commit();
                 return $transaction;
